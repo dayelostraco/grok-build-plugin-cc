@@ -53,7 +53,7 @@ if (argv[0] === "models") {
     process.exit(1);
   }
   if (scenario === "not-authenticated") {
-    // Mirrors grok CLI 1.0.3: exits 0 and still prints the roster when logged out.
+    // Mirrors the real CLI (1.0.3 through at least 1.0.25): exits 0 and still prints the roster when logged out.
     process.stdout.write("You are not authenticated.\\n\\nDefault model: fake-model\\n\\nAvailable models:\\n  - fake-model\\n");
     process.exit(0);
   }
