@@ -62,6 +62,36 @@ test("getGrokAuthStatus treats a zero-exit unauthenticated probe as not logged i
   assert.match(auth.detail, /not authenticated/i);
 });
 
+for (const [banner, authMethod] of [
+  ["You are using XAI_API_KEY.", "xai-api-key"],
+  ["You are logged in with grok.com.", "grok-cli"],
+  ["Model 'grok-code-fast-1' is using its own API key.", "model-api-key"],
+  ["You are authenticated via deployment key.", "deployment-key"]
+]) {
+  test(`getGrokAuthStatus reports verified login for banner: ${banner}`, () => {
+    const binDir = makeTempDir();
+    installFakeGrok(binDir);
+    const env = buildEnv(binDir, { FAKE_GROK_MODELS_BANNER: banner });
+
+    const auth = getGrokAuthStatus(process.cwd(), { env });
+    assert.equal(auth.loggedIn, true);
+    assert.equal(auth.verified, true);
+    assert.equal(auth.authMethod, authMethod);
+    assert.equal(auth.detail, banner);
+  });
+}
+
+test("getGrokAuthStatus does not block on an unrecognized banner, but leaves it unverified", () => {
+  const binDir = makeTempDir();
+  installFakeGrok(binDir);
+  const env = buildEnv(binDir, { FAKE_GROK_MODELS_BANNER: "Signed in through some future method." });
+
+  const auth = getGrokAuthStatus(process.cwd(), { env });
+  assert.equal(auth.loggedIn, true);
+  assert.equal(auth.verified, false);
+  assert.equal(auth.authMethod, null);
+});
+
 test("runHeadlessAgent captures stdout and session id from fake grok", async () => {
   const binDir = makeTempDir();
   installFakeGrok(binDir);

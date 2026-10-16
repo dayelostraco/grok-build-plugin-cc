@@ -107,19 +107,40 @@ export function runModelsProbe(cwd, options = {}) {
 
   // `grok models` exits 0 whether or not the CLI is authenticated, and prints the
   // model roster in both states, so exit status and the presence of "available
-  // models" cannot distinguish them. Detect the unauthenticated banner instead.
+  // models" cannot distinguish them. Read the auth banner instead: the CLI prints
+  // exactly one of the lines in MODELS_AUTH_BANNERS, or the unauthenticated one.
   const stdout = (result.stdout || "").trim();
-  const notAuthenticated = /not authenticated|not logged in|please log in/i.test(stdout);
-  const loggedIn = !notAuthenticated && /logged in/i.test(stdout);
+  if (/^You are not authenticated\./m.test(stdout)) {
+    return buildAuthStatus({
+      available: true,
+      loggedIn: false,
+      detail: firstLine(stdout),
+      source: "models-probe",
+      verified: false
+    });
+  }
+
+  const banner = MODELS_AUTH_BANNERS.find(({ pattern }) => pattern.test(stdout));
+  // An unrecognized banner (future CLI wording) must not block the gate: report
+  // logged in, but unverified.
   return buildAuthStatus({
     available: true,
-    loggedIn,
+    loggedIn: true,
     detail: firstLine(stdout) || "grok models succeeded",
     source: "models-probe",
-    authMethod: loggedIn ? "grok-cli" : null,
-    verified: loggedIn
+    authMethod: banner?.authMethod ?? null,
+    verified: Boolean(banner)
   });
 }
+
+// Authenticated first lines of `grok models` (xai-grok-pager src/models.rs,
+// list_available_models).
+const MODELS_AUTH_BANNERS = [
+  { pattern: /^You are using XAI_API_KEY\./m, authMethod: "xai-api-key" },
+  { pattern: /^You are logged in with /m, authMethod: "grok-cli" },
+  { pattern: /^Model '.*' is using its own API key\./m, authMethod: "model-api-key" },
+  { pattern: /^You are authenticated via deployment key\./m, authMethod: "deployment-key" }
+];
 
 export function getGrokAuthStatus(cwd, options = {}) {
   const availability = getGrokAvailability(cwd, options);

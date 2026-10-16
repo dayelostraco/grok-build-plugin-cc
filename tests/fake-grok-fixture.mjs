@@ -57,7 +57,9 @@ if (argv[0] === "models") {
     process.stdout.write("You are not authenticated.\\n\\nDefault model: fake-model\\n\\nAvailable models:\\n  - fake-model\\n");
     process.exit(0);
   }
-  process.stdout.write("You are logged in with grok.com.\\n\\nDefault model: fake-model\\n\\nAvailable models:\\n  - fake-model\\n");
+  // FAKE_GROK_MODELS_BANNER overrides the auth banner, to exercise each auth state.
+  const banner = process.env.FAKE_GROK_MODELS_BANNER ?? "You are logged in with grok.com.";
+  process.stdout.write(banner + "\\n\\nDefault model: fake-model\\n\\nAvailable models:\\n  - fake-model\\n");
   process.exit(0);
 }
 
